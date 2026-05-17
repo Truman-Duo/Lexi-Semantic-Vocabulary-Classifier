@@ -1,6 +1,15 @@
 import re
 from typing import Iterator, Set
-from nltk.corpus import wordnet as wn
+
+
+def _get_wordnet():
+    try:
+        from nltk.corpus import wordnet as wn
+        return wn
+    except ImportError:
+        raise ImportError(
+            "Missing dependency 'nltk'. Run: pip install nltk"
+        )
 
 CONTRACTIONS = {
     "don't": "do not",
@@ -59,7 +68,7 @@ def _get_multiword_set() -> Set[str]:
     if _multiword_cache is not None:
         return _multiword_cache
     multiwords = set()
-    for ss in wn.all_synsets():
+    for ss in _get_wordnet().all_synsets():
         for lemma in ss.lemmas():
             name = lemma.name()
             if '_' in name:

@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.idea/
+venv/
+.venv/
+*.apkg
+*_output.*
+output.md
+output.json

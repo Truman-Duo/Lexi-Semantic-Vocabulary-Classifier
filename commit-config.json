@@ -1,0 +1,37 @@
+{
+  "projectPrefix": "LEXI",
+  "allowPrefixChange": true,
+  "validTypes": ["feat", "fix", "docs", "style", "refactor", "perf", "test", "chore"],
+  "validScopes": [
+    "core",
+    "pipeline",
+    "classifier",
+    "cleaner",
+    "lemmatizer",
+    "sorter",
+    "models",
+    "story",
+    "styles",
+    "analyzer",
+    "config",
+    "controller",
+    "cli",
+    "gui",
+    "data",
+    "tests",
+    "docs"
+  ],
+  "requireScope": true,
+  "maxSubjectLength": 60,
+  "examples": [
+    "[LEXI-001] feat(core): 三级意群分类 + WordNet 上义词路径词库构建",
+    "[LEXI-002] feat(pipeline): 多格式导出 Markdown/JSON/CSV/HTML/Anki",
+    "[LEXI-003] feat(gui): CustomTkinter 现代化 UI 深色/浅色主题",
+    "[LEXI-004] feat(story): AI 短文生成 OpenAI 兼容接口 + 4 种选词策略",
+    "[LEXI-005] feat(analyzer): StyleAnalyzer 15 项量化风格指标提取",
+    "[LEXI-006] feat(styles): 风格模板系统 YAML frontmatter 量化特征存储",
+    "[LEXI-007] refactor(controller): LexiController 统一入口解耦 UI 与业务逻辑",
+    "[LEXI-008] test(tests): 88 个 pytest 单元测试覆盖全部核心模块",
+    "[LEXI-009] chore(config): pyproject.toml + .gitignore + CLAUDE.md"
+  ]
+}

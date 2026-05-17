@@ -1,0 +1,14 @@
+
+# [LEXI-XXX] <type>(<scope>): <subject>
+#
+# type:   feat / fix / docs / style / refactor / perf / test / chore
+# scope:  core / pipeline / classifier / cleaner / lemmatizer
+#         sorter / models / story / styles / analyzer / config
+#         controller / cli / gui / data / tests / docs
+#
+# subject: max 60 chars, imperative mood, no period at end
+#
+# Body (optional, wrap at 72 chars):
+# - What changed and why
+# - Breaking changes / migration notes
+#

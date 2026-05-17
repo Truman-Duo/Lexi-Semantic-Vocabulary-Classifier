@@ -15,8 +15,9 @@ Ideal for language learners, teachers, and anyone who wants to understand the se
 - **Phrase protection** — Multi-word expressions (e.g. *ad_hoc*, *look_for*) are preserved
 - **Contraction expansion** — *don't* → *do not*, *it's* → *it is*, etc.
 - **Multi-format output** — Markdown, JSON, CSV, interactive HTML, Anki (.apkg)
+- **AI story generation** — Generate short passages with target vocabulary using your own API key (OpenAI-compatible)
 - **Graphical interface** — Built with tkinter, no extra dependencies required
-- **100% offline** — No API calls, no data leaves your machine
+- **100% offline** — Core classification is fully offline; AI story generation is optional
 
 ---
 
@@ -52,6 +53,7 @@ Output
 
 - Python 3.8+
 - Dependencies: `pip install lemminflect wordfreq nltk`
+- (Optional) AI story generation: `pip install openai`
 - (Optional) Anki export: `pip install genanki`
 
 ### First-Time Setup
@@ -82,6 +84,11 @@ python cli.py your_text.txt \
   --output-html output.html \
   --output-anki deck.apkg \
   --overrides my_overrides.json
+
+# AI story generation
+python cli.py config --api-key sk-...           # Configure API once
+python cli.py story output.json --count 20       # Auto-select 20 words
+python cli.py story output.json --words "abandon,beneficial,consequence"
 ```
 
 ### Windows (Drag & Drop)
@@ -99,6 +106,7 @@ Drag a text file onto `run_lexi.bat` to run with CSV + HTML output automatically
 | CSV | `*.csv` | Spreadsheet-ready, opens in Excel |
 | HTML | `*.html` | Self-contained interactive browser (search, filter, sort) |
 | Anki | `*.apkg` | Importable flashcard deck (requires `genanki`) |
+| Story | `*_story.md` | AI-generated passage with target words highlighted (requires `openai`) |
 
 ---
 
@@ -134,6 +142,8 @@ lexi/
 │   ├── lemmatizer.py           # Lemmatization (lemminflect)
 │   ├── classifier.py           # Classification engine
 │   ├── sorter.py               # Frequency sorting + CEFR
+│   ├── story.py                # AI story generation (OpenAI-compatible)
+│   ├── config.py               # API configuration management
 │   └── models.py               # Data models
 └── data/
     ├── categories_full.json    # Pre-built category dictionary (~155k words)
@@ -175,8 +185,9 @@ Lexi 是一款离线多标签英文词汇意群分类工具。将单词归入三
 - **短语保护** — 多词表达（如 *ad_hoc*、*look_for*）自动保留
 - **缩写展开** — *don't* → *do not*、*it's* → *it is* 等
 - **多格式输出** — Markdown、JSON、CSV、交互式 HTML、Anki 牌组
+- **AI 短文生成** — 使用自己的 API Key 让 AI 生成包含目标词汇的英文短文（OpenAI 兼容接口）
 - **图形界面** — 基于 tkinter，无需额外依赖
-- **完全离线** — 无需 API，数据不离开本机
+- **完全离线** — 核心分类完全离线；AI 短文生成为可选功能
 
 ---
 
@@ -212,6 +223,7 @@ Lexi 是一款离线多标签英文词汇意群分类工具。将单词归入三
 
 - Python 3.8+
 - 安装依赖：`pip install lemminflect wordfreq nltk`
+- （可选）AI 短文生成：`pip install openai`
 - （可选）Anki 导出：`pip install genanki`
 
 ### 首次配置
@@ -242,6 +254,11 @@ python cli.py 你的文本.txt \
   --output-html output.html \
   --output-anki deck.apkg \
   --overrides my_overrides.json
+
+# AI 短文生成
+python cli.py config --api-key sk-...           # 首次配置 API
+python cli.py story output.json --count 20       # 自动选 20 词生成
+python cli.py story output.json --words "abandon,beneficial,consequence"
 ```
 
 ### Windows 拖放运行
@@ -259,6 +276,7 @@ python cli.py 你的文本.txt \
 | CSV | `*.csv` | 可直接用 Excel 打开 |
 | HTML | `*.html` | 自包含交互浏览器（搜索、筛选、排序） |
 | Anki | `*.apkg` | 可导入 Anki 的牌组（需 `genanki`） |
+| 短文 | `*_story.md` | AI 生成含目标词汇的英文短文（需 `openai`） |
 
 ---
 
@@ -294,6 +312,8 @@ lexi/
 │   ├── lemmatizer.py           # 词形还原（lemminflect）
 │   ├── classifier.py           # 分类引擎
 │   ├── sorter.py               # 词频排序 + CEFR
+│   ├── story.py                # AI 短文生成（OpenAI 兼容接口）
+│   ├── config.py               # API 配置管理
 │   └── models.py               # 数据模型
 └── data/
     ├── categories_full.json    # 预构建分类词库（约 15.5 万词）

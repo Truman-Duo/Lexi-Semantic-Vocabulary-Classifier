@@ -5,31 +5,40 @@ import os
 import sys
 import threading
 from tkinter import (
-    Tk, Frame, Label, LabelFrame, Entry, Button, Text,
+    Tk, Frame, Label, LabelFrame, Entry, Button, Text, Menu,
     Checkbutton, BooleanVar, StringVar, IntVar,
-    filedialog, messagebox, ttk,
+    filedialog, messagebox, ttk, Toplevel,
 )
 
 # Ensure parent directory is on path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from lexi.pipeline import run_pipeline
+from lexi.controller import LexiController, OutputOptions
 
 
 class LexiGUI:
     def __init__(self):
         self.root = Tk()
         self.root.title("Lexi 词汇分类工具 v2.0")
-        self.root.geometry("720x620")
+        self.root.geometry("720x780")
         self.root.resizable(True, True)
 
-        # State
         self.running = False
         self.output_dir = os.path.dirname(os.path.abspath(__file__)) or "."
+        self.last_output_json = None
+        self.last_base = ""
+        self.ctrl = LexiController()
 
         self._build_ui()
 
     def _build_ui(self):
+        # --- Menu Bar ---
+        menubar = Menu(self.root)
+        settings_menu = Menu(menubar, tearoff=0)
+        settings_menu.add_command(label="API 配置...", command=self._show_api_settings)
+        menubar.add_cascade(label="设置", menu=settings_menu)
+        self.root.config(menu=menubar)
+
         # --- Input Section ---
         sec = LabelFrame(self.root, text=" 输入设置 ", padx=10, pady=8)
         sec.pack(fill="x", padx=12, pady=(12, 4))
@@ -95,14 +104,72 @@ class LexiGUI:
         sec4 = LabelFrame(self.root, text=" 结果 ", padx=10, pady=6)
         sec4.pack(fill="both", expand=True, padx=12, pady=4)
 
-        self.result_text = Text(sec4, height=8, state="disabled",
+        self.result_text = Text(sec4, height=6, state="disabled",
                                 font=("Consolas", 9), wrap="word")
         self.result_text.pack(fill="both", expand=True)
 
+        # --- Story Generation Section ---
+        self.story_frame = LabelFrame(self.root, text=" AI 短文生成 ", padx=10, pady=6)
+        self.story_frame.pack(fill="x", padx=12, pady=4)
+
+        ctrl_frame = Frame(self.story_frame)
+        ctrl_frame.pack(fill="x")
+
+        Label(ctrl_frame, text="词汇数量:").grid(row=0, column=0, sticky="w", padx=(0, 4))
+        self.story_count_var = IntVar(value=20)
+        ttk.Spinbox(ctrl_frame, from_=10, to=50, textvariable=self.story_count_var,
+                    width=5).grid(row=0, column=1, sticky="w", padx=(0, 12))
+
+        Label(ctrl_frame, text="策略:").grid(row=0, column=2, sticky="w", padx=(0, 4))
+        self.story_strategy_var = StringVar(value="balanced")
+        ttk.Combobox(ctrl_frame, textvariable=self.story_strategy_var,
+                     values=["balanced", "top_frequency", "random", "stratified"],
+                     state="readonly", width=14).grid(row=0, column=3, sticky="w", padx=(0, 12))
+
+        Label(ctrl_frame, text="长度:").grid(row=0, column=4, sticky="w", padx=(0, 4))
+        self.story_length_var = StringVar(value="medium")
+        ttk.Combobox(ctrl_frame, textvariable=self.story_length_var,
+                     values=["short", "medium", "long"],
+                     state="readonly", width=8).grid(row=0, column=5, sticky="w")
+
+        Label(ctrl_frame, text="指定词汇:").grid(row=1, column=0, sticky="w", pady=(6, 0))
+        self.story_words_var = StringVar(value="")
+        Entry(ctrl_frame, textvariable=self.story_words_var).grid(
+            row=1, column=1, columnspan=4, sticky="ew", pady=(6, 0), padx=(0, 4))
+
+        self.story_btn = Button(ctrl_frame, text="生成短文", command=self._run_story,
+                                bg="#27ae60", fg="white", padx=12, pady=2,
+                                cursor="hand2")
+        self.story_btn.grid(row=1, column=5, sticky="e", pady=(6, 0))
+
+        Label(ctrl_frame, text="风格:").grid(row=2, column=0, sticky="w", pady=(6, 0))
+        self.story_style_var = StringVar(value="")
+        self.story_style_combo = ttk.Combobox(
+            ctrl_frame, textvariable=self.story_style_var,
+            state="readonly", width=18,
+        )
+        self.story_style_combo.grid(row=2, column=1, columnspan=2, sticky="w", pady=(6, 0))
+        self.refresh_styles_btn = Button(
+            ctrl_frame, text="刷新风格", command=self._refresh_styles,
+            font=("", 8),
+        )
+        self.refresh_styles_btn.grid(row=2, column=3, sticky="w", pady=(6, 0), padx=(4, 0))
+
+        ctrl_frame.columnconfigure(1, weight=0)
+        ctrl_frame.columnconfigure(3, weight=1)
+
         # Open output folder button
-        self.open_btn = Button(self.root, text="📂 打开输出文件夹",
+        btn_frame = Frame(self.root)
+        btn_frame.pack(pady=(4, 10))
+        self.open_btn = Button(btn_frame, text="打开输出文件夹",
                                command=self._open_output, state="disabled")
-        self.open_btn.pack(pady=(4, 10))
+        self.open_btn.pack(side="left", padx=4)
+        self.open_story_btn = Button(btn_frame, text="打开短文文件",
+                                     command=self._open_story, state="disabled")
+        self.open_story_btn.pack(side="left", padx=4)
+
+        self._toggle_story_ui(False)
+        self.last_story_md = None
 
     def _browse_file(self, var, title):
         path = filedialog.askopenfilename(title=title)
@@ -140,17 +207,76 @@ class LexiGUI:
         state = "normal" if enabled else "disabled"
         self.run_btn.configure(state=state)
         self.open_btn.configure(state="disabled")
-        # Disable/enable input section children
         for child in self.root.winfo_children():
             if isinstance(child, LabelFrame):
                 for grandchild in child.winfo_children():
-                    if isinstance(grandchild, Button) and grandchild != self.run_btn:
+                    if isinstance(grandchild, Button) and grandchild not in (self.run_btn, self.story_btn):
                         grandchild.configure(state=state)
+
+    def _toggle_story_ui(self, enabled):
+        state = "normal" if enabled else "disabled"
+        self.story_btn.configure(state=state)
+        for child in self.story_frame.winfo_children():
+            if isinstance(child, Frame):
+                for grandchild in child.winfo_children():
+                    try:
+                        grandchild.configure(state=state)
+                    except Exception:
+                        pass
 
     def _open_output(self):
         path = self.output_dir
         if os.path.isdir(path):
             os.startfile(path)
+
+    def _open_story(self):
+        if self.last_story_md and os.path.exists(self.last_story_md):
+            os.startfile(self.last_story_md)
+
+    def _show_api_settings(self):
+        dialog = Toplevel(self.root)
+        dialog.title("API 配置")
+        dialog.geometry("420x280")
+        dialog.resizable(False, False)
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        config = self.ctrl.config
+
+        Label(dialog, text="Lexi AI API 配置", font=("", 11, "bold")).pack(pady=(12, 8))
+        Label(dialog, text="支持 OpenAI 兼容接口（OpenAI / DeepSeek / Ollama 等）",
+              fg="#888", font=("", 8)).pack()
+
+        fields = Frame(dialog)
+        fields.pack(pady=8, padx=20, fill="x")
+
+        Label(fields, text="API Base URL:", anchor="w").pack(fill="x")
+        url_var = StringVar(value=config.api_base_url)
+        Entry(fields, textvariable=url_var).pack(fill="x", pady=(0, 8))
+
+        Label(fields, text="API 密钥:", anchor="w").pack(fill="x")
+        key_var = StringVar(value=config.api_key)
+        key_entry = Entry(fields, textvariable=key_var, show="*")
+        key_entry.pack(fill="x", pady=(0, 2))
+        show_key_var = BooleanVar(value=False)
+        Checkbutton(fields, text="显示密钥", variable=show_key_var,
+                    command=lambda: key_entry.configure(
+                        show="" if show_key_var.get() else "*")).pack(anchor="w")
+
+        Label(fields, text="模型:", anchor="w").pack(fill="x", pady=(8, 0))
+        model_var = StringVar(value=config.model)
+        Entry(fields, textvariable=model_var).pack(fill="x", pady=(0, 8))
+
+        def save():
+            config.api_key = key_var.get()
+            config.api_base_url = url_var.get()
+            config.model = model_var.get()
+            self.ctrl.save_config()
+            self._log(f"[API] 配置已保存 ({config.api_base_url}, {config.model})")
+            dialog.destroy()
+
+        Button(dialog, text="保存", command=save,
+               bg="#27ae60", fg="white", padx=20, pady=4).pack(pady=8)
 
     def _run(self):
         if self.running:
@@ -169,31 +295,39 @@ class LexiGUI:
         over_file = self.over_var.get() or None
         outdir = self.outdir_var.get() or "."
 
-        base = os.path.splitext(os.path.basename(input_file))[0]
+        self.last_base = os.path.splitext(os.path.basename(input_file))[0]
 
         def make_path(ext):
-            return os.path.join(outdir, f"{base}{ext}")
+            return os.path.join(outdir, f"{self.last_base}{ext}")
 
         self.result_text.configure(state="normal")
         self.result_text.delete("1.0", "end")
         self.result_text.configure(state="disabled")
         self._toggle_ui(False)
+        self._toggle_story_ui(False)
+        self.open_story_btn.configure(state="disabled")
+        self.last_output_json = None
+        self.last_story_md = None
         self.running = True
         self._log("Lexi 词汇分类工具 v2.0")
         self._log("=" * 40)
 
         def run():
             try:
-                run_pipeline(
+                result = self.ctrl.classify(
                     input_file=input_file,
-                    categories_json=cat_file,
-                    stopwords_txt=stop_file if os.path.exists(stop_file) else None,
-                    overrides_json=over_file if over_file and os.path.exists(over_file) else None,
-                    output_md=make_path("_output.md") if self.opt_md.get() else None,
-                    output_json=make_path("_output.json") if self.opt_json.get() else None,
-                    output_csv=make_path("_output.csv") if self.opt_csv.get() else None,
-                    output_html=make_path("_output.html") if self.opt_html.get() else None,
-                    output_anki=make_path("_output.apkg") if self.opt_anki.get() else None,
+                    categories_path=cat_file,
+                    stopwords_path=stop_file if os.path.exists(stop_file) else "data/stopwords.txt",
+                    overrides_path=over_file if over_file and os.path.exists(over_file) else None,
+                    outputs=OutputOptions(
+                        markdown=self.opt_md.get(),
+                        json=self.opt_json.get(),
+                        csv=self.opt_csv.get(),
+                        html=self.opt_html.get(),
+                        anki=self.opt_anki.get(),
+                    ),
+                    output_dir=outdir,
+                    base_name=self.last_base,
                     status_callback=lambda msg: self._set_status(msg.strip()),
                     progress_callback=self._set_progress,
                 )
@@ -209,6 +343,13 @@ class LexiGUI:
         self._toggle_ui(True)
         self.running = False
         self.open_btn.configure(state="normal")
+        json_path = os.path.join(self.outdir_var.get() or ".", f"{self.last_base}_output.json")
+        if os.path.exists(json_path):
+            self.last_output_json = json_path
+            self._refresh_styles()
+            self._toggle_story_ui(True)
+            self._log("")
+            self._log("\U0001f4a1 已启用 AI 短文生成，选择词汇数量后点击'生成短文'")
 
     def _on_error(self, msg):
         self._log(f"错误: {msg}")
@@ -216,6 +357,72 @@ class LexiGUI:
         self.running = False
         self.run_btn.configure(state="normal")
         messagebox.showerror("处理出错", msg)
+
+    def _run_story(self):
+        if self.running:
+            return
+        if not self.last_output_json:
+            messagebox.showerror("错误", "请先运行分类")
+            return
+
+        words_entry = self.story_words_var.get().strip()
+        word_list = [w.strip() for w in words_entry.split(",") if w.strip()] if words_entry else None
+        outdir = self.outdir_var.get() or "."
+
+        style_name = self.story_style_var.get()
+        if style_name == "(无)" or not style_name:
+            style_name = None
+
+        self._toggle_ui(False)
+        self._toggle_story_ui(False)
+        self.running = True
+        self._log("")
+        self._log("-" * 40)
+        self._log("AI 短文生成中...")
+
+        def run():
+            try:
+                result = self.ctrl.generate_story(
+                    input_json=self.last_output_json,
+                    output_dir=outdir,
+                    word_list=word_list,
+                    count=self.story_count_var.get(),
+                    strategy=self.story_strategy_var.get(),
+                    length=self.story_length_var.get(),
+                    language="zh",
+                    style=style_name,
+                    progress_callback=self._set_progress,
+                    status_callback=lambda msg: self._set_status(msg.strip()),
+                )
+                story_md = os.path.join(outdir, f"{self.last_base}_story.md")
+                self.root.after(0, self._on_story_success, result, story_md)
+            except Exception as e:
+                self.root.after(0, self._on_error, str(e))
+
+        threading.Thread(target=run, daemon=True).start()
+
+    def _on_story_success(self, result, story_md):
+        self._log(f"模型: {result.model}")
+        self._log(f"目标词汇: {len(result.words_used) + len(result.words_missed)}")
+        self._log(f"已使用: {len(result.words_used)}")
+        self._log(f"短文词数: {result.word_count}")
+        if result.words_missed:
+            self._log(f"未使用: {', '.join(result.words_missed)}")
+        self._log("")
+        self._log(result.passage)
+        self._log("-" * 40)
+        self._log(f"短文已保存: {story_md}")
+        self._toggle_ui(True)
+        self._toggle_story_ui(True)
+        self.running = False
+        self.last_story_md = story_md
+        self.open_story_btn.configure(state="normal")
+
+    def _refresh_styles(self):
+        names = self.ctrl.styles.style_names()
+        self.story_style_combo["values"] = ["(无)"] + names
+        if not self.story_style_var.get() or self.story_style_var.get() not in names:
+            self.story_style_var.set("(无)")
 
     def run(self):
         self.root.mainloop()

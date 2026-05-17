@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=64.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "lexi"
+version = "2.1.0"
+description = "Offline multi-label English vocabulary classification tool with AI story generation"
+requires-python = ">=3.9"
+dependencies = [
+    "lemminflect",
+    "wordfreq",
+    "nltk",
+]
+optional-dependencies = {dev = ["pytest>=7", "pytest-mock>=3"]}
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

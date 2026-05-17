@@ -11,16 +11,18 @@ Lexi 是一款离线多标签英文词汇意群分类工具。输入英文文本
 ## 架构
 
 ```
-cli.py                    # 命令行入口
+cli.py                    # 命令行入口（分类 + story/config 子命令）
 gui.py                    # tkinter 图形界面（与 CLI 共享 pipeline）
 lexi/
-  __init__.py             # 导出 run_pipeline、ClassificationResult、WordInfo 等
+  __init__.py             # 导出 run_pipeline、ClassificationResult、WordInfo、StoryGenerator 等
   models.py               # 数据模型：ClassificationResult、WordInfo（含置信度/CEFR）
   pipeline.py             # 主流程编排 + Markdown/JSON/CSV/HTML/Anki 输出
   cleaner.py              # 文本清洗：去除音标/词性标注/特殊字符，展开缩写，保护多词短语
   lemmatizer.py           # 词形还原（lemminflect）
   classifier.py           # 分类器：词典匹配 → 派生模糊匹配 → 后缀规则 → 词性回退
   sorter.py               # 词频排序 + CEFR 等级映射
+  story.py                # AI 短文生成（OpenAI 兼容接口，惰性导入 openai）
+  config.py               # API 配置管理（~/.lexi/config.json）
 build_full_categories.py  # 基于 WordNet 上义词路径预构建完整分类词库
 data/
   stopwords.txt           # 停用词表
@@ -44,6 +46,11 @@ python cli.py test.txt --categories data/categories_full.json
 python cli.py test.txt --categories data/categories_full.json \
   --output-csv output.csv --output-html output.html --output-anki output.apkg
 
+# AI 短文生成
+python cli.py config --api-key sk-...              # 首次配置 API
+python cli.py story output.json --count 20          # 自动选词生成短文
+python cli.py story output.json --words "a,b,c"     # 手动指定词汇
+
 # GUI 模式
 python gui.py
 
@@ -65,11 +72,14 @@ python build_full_categories.py   # 5-10分钟，输出 data/categories_full.jso
 - `lemminflect` — 词形还原
 - `wordfreq` — Zipf 词频统计 + CEFR 等级映射
 - `nltk` — WordNet 上义词路径、词性标注
+- `openai`（可选）— AI 短文生成（OpenAI 兼容接口）
 - `genanki`（可选）— Anki APKG 牌组导出
 - `tkinter`（内置）— GUI 界面
 
 ## 新功能（v2.0）
 
+- **AI 短文生成**：接入 OpenAI 兼容 API，选择目标词汇自动生成英文短文，支持 4 种选词策略
+- **API 配置管理**：`cli.py config` 子命令 + GUI 设置对话框，配置文件存储在 `~/.lexi/config.json`
 - **派生模糊匹配**：词典未命中时，自动剥离派生后缀（-ness、-less、-ful、-ly、-tion 等）重新匹配，置信度 0.8
 - **置信度分数**：每个分类结果标注置信度（词典=1.0、模糊=0.8、后缀=0.6、词性回退=0.4）
 - **CEFR 等级**：从 Zipf 频率映射 A1-C2 等级，Markdown/CSV/JSON/HTML 输出均包含
@@ -88,3 +98,5 @@ python build_full_categories.py   # 5-10分钟，输出 data/categories_full.jso
 - 输出按 Zipf 词频降序排列
 - NLTK 资源在首次使用时惰性下载，不在 import 时触发
 - GUI 使用 threading 避免界面阻塞，通过回调更新进度
+- AI 短文生成为独立步骤，不嵌入分类 pipeline，CLI 通过 `story` 子命令调用
+- openai SDK 采用惰性导入，缺失时给出清晰提示而非在启动时崩溃

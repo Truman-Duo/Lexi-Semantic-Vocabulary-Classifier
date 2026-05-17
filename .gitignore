@@ -7,3 +7,10 @@ venv/
 *_output.*
 output.md
 output.json
+
+# pytest
+.pytest_cache/
+tests/__pycache__/
+
+# Claude Code
+.claude/

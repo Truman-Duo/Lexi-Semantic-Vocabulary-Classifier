@@ -1,5 +1,30 @@
 # Version History
 
+## v2.1 — 架构重构 + AI 风格模板 + 测试套件 (2026-05-17)
+
+### 新增功能
+
+- **风格模板系统** (`lexi/styles.py`) — 用户可保存参考文本（托福/雅思/NYT 等）作为风格教练，生成短文时选择风格，AI 模仿其句式/用词/语气
+- **CLI 风格管理** — `python cli.py style add/list/show/delete` 子命令
+- **GUI 风格选择器** — 短文面板新增风格下拉框 + 刷新按钮
+- **测试套件** (`tests/`) — 70 个 pytest 单元测试，覆盖 cleaner/lemmatizer/classifier/sorter/story/styles/controller
+- **pyproject.toml** — 项目元数据 + pytest 配置
+
+### 架构改进
+
+- **LexiController** (`lexi/controller.py`) — 统一入口层，解耦 UI 与业务逻辑，CLI 和 GUI 同等使用
+- **输出抽象** — `OutputOptions` / `ClassifyResult` 数据类，替代原先散落的路径参数
+- 短文生成 prompt 支持 `style_text` 参数，可注入风格参考文本
+
+### 工程改进
+
+- CLI 和 GUI 均通过 LexiController 调用，不再直接引用 pipeline/story 内部函数
+- `openai` 包改为惰性导入，仅在调用短文生成时才加载
+- `.gitignore` 新增 `.pytest_cache/` 和 `tests/__pycache__/`
+- 新增 `ROADMAP.md` — 产品路线图（P0-P4）
+
+---
+
 ## v0.0.2 — 多格式导出 + GUI + 置信度分类 (2026-05-06)
 
 ### 新增功能

@@ -122,11 +122,13 @@ class LexiController:
         base = base_name or os.path.splitext(os.path.basename(input_json))[0]
         story_md = os.path.join(output_dir, f"{base}_story.md")
 
-        style_text: Optional[str] = None
+        style_profile = None
+        style_name = ""
         if style:
             try:
                 style_obj = self._style_manager.get_style(style)
-                style_text = style_obj.body
+                style_profile = style_obj.profile
+                style_name = style_obj.name
             except FileNotFoundError:
                 raise ValueError(
                     f"Style '{style}' not found. "
@@ -167,7 +169,8 @@ class LexiController:
             word_infos=word_infos,
             length=length,
             language=language,
-            style_text=style_text,
+            style_profile=style_profile,
+            style_name=style_name,
             progress_callback=progress_callback,
             status_callback=status_callback,
         )

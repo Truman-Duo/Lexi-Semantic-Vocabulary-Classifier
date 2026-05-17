@@ -6,6 +6,7 @@ from .story import StoryGenerator, StoryResult, generate_story
 from .config import LexiConfig, load_config, save_config
 from .controller import LexiController, ClassifyResult, OutputOptions
 from .styles import StyleManager, Style
+from .style_analyzer import StyleProfile, StyleAnalyzer
 
 __all__ = [
     "run_pipeline",
@@ -25,4 +26,6 @@ __all__ = [
     "OutputOptions",
     "StyleManager",
     "Style",
+    "StyleProfile",
+    "StyleAnalyzer",
 ]

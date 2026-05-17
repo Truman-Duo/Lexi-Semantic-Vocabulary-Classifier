@@ -9,11 +9,12 @@ def test_list_empty(temp_dir):
 
 def test_add_and_list(temp_dir):
     mgr = StyleManager(os.path.join(temp_dir, "styles"))
-    mgr.add_style("test1", "Hello world body", "Test desc", "Test source")
+    mgr.add_style("test1", "The cat sat on the mat. The dog ran fast.", "Test desc", "Test source")
     styles = mgr.list_styles()
     assert len(styles) == 1
     assert styles[0].name == "test1"
-    assert styles[0].body == "Hello world body"
+    assert "The cat sat" in styles[0].body
+    assert styles[0].profile.avg_word_length > 0
 
 
 def test_get_style(temp_dir):

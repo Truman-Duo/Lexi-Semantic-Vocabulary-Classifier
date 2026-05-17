@@ -84,7 +84,7 @@ def test_generate_story_with_style(
     mocker, mock_config, mock_openai, sample_classified_json, temp_dir,
 ):
     ctrl = LexiController()
-    ctrl.styles.add_style("TestStyle", "Reference text for style.", "desc")
+    ctrl.styles.add_style("TestStyle", "Reference text for style analysis. " * 10, "desc")
     result = ctrl.generate_story(
         sample_classified_json,
         output_dir=temp_dir,
@@ -92,6 +92,7 @@ def test_generate_story_with_style(
         style="TestStyle",
     )
     assert isinstance(result, StoryResult)
+    assert "dog" in result.passage
 
 
 def test_generate_story_style_not_found(

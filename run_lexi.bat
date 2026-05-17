@@ -1,5 +1,5 @@
 @echo off
-title Lexi v2.0
+title Lexi v2.4
 
 cd /d "%~dp0"
 

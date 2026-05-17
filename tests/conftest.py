@@ -156,3 +156,25 @@ def mock_config(mocker):
     cfg = LexiConfig(api_key="sk-test", model="gpt-4o-mini")
     mocker.patch("lexi.controller.load_config", return_value=cfg)
     return cfg
+
+
+@pytest.fixture
+def sample_profile():
+    from lexi.style_analyzer import StyleProfile
+    return StyleProfile(
+        avg_word_length=5.2,
+        type_token_ratio=0.68,
+        avg_sentence_length=20.3,
+        sentence_length_std=7.8,
+        passive_voice_ratio=0.12,
+        flesch_reading_ease=45.0,
+        flesch_kincaid_grade=12.5,
+        cefr_distribution={"B1": 0.25, "B2": 0.35, "C1": 0.20},
+        nominalization_ratio=0.08,
+        modifier_density=0.35,
+        lexical_density=0.52,
+        subordination_ratio=1.5,
+        coordination_ratio=0.8,
+        transition_density=3.2,
+        pronoun_density=0.05,
+    )

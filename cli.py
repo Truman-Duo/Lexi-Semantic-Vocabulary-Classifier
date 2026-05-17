@@ -297,6 +297,9 @@ def _handle_style_command(ctrl, argv):
     del_p = sub.add_parser("delete", help="删除风格模板")
     del_p.add_argument("name", help="风格名称")
 
+    analyze_p = sub.add_parser("analyze", help="重新分析已有风格模板的量化特征")
+    analyze_p.add_argument("name", help="风格名称")
+
     args = parser.parse_args(argv)
 
     if args.command == "add":
@@ -326,7 +329,9 @@ def _handle_style_command(ctrl, argv):
             print(f"Name:        {s.name}")
             print(f"Description: {s.description}")
             print(f"Source:      {s.source}")
-            print(f"--- body ({len(s.body)} chars) ---")
+            print()
+            _print_profile(s.profile)
+            print(f"\n--- body ({len(s.body)} chars) ---")
             print(s.body)
         except FileNotFoundError as e:
             print(e, file=sys.stderr)
@@ -336,6 +341,15 @@ def _handle_style_command(ctrl, argv):
         try:
             ctrl.styles.delete_style(args.name)
             print(f"风格 '{args.name}' 已删除")
+        except FileNotFoundError as e:
+            print(e, file=sys.stderr)
+            sys.exit(1)
+
+    elif args.command == "analyze":
+        try:
+            s = ctrl.styles.analyze_style(args.name)
+            print(f"风格 '{s.name}' 已重新分析：")
+            _print_profile(s.profile)
         except FileNotFoundError as e:
             print(e, file=sys.stderr)
             sys.exit(1)
@@ -354,6 +368,32 @@ def _mask_key(key: str) -> str:
     if not key:
         return "(未设置)"
     return key[:8] + "..." if len(key) > 8 else "***"
+
+
+def _print_profile(profile):
+    if profile.avg_sentence_length <= 0:
+        print("(未分析)")
+        return
+    print("风格量化特征:")
+    print(f"  平均词长:           {profile.avg_word_length:.1f} 字符")
+    print(f"  型例比 (TTR):       {profile.type_token_ratio:.2f}")
+    if profile.cefr_distribution:
+        cefr_str = ", ".join(
+            f"{lvl}:{pct*100:.0f}%" for lvl, pct in sorted(profile.cefr_distribution.items())
+        )
+        print(f"  CEFR 分布:          {cefr_str}")
+    print(f"  平均句长:           {profile.avg_sentence_length:.1f} 词")
+    print(f"  句长方差 (σ):       {profile.sentence_length_std:.1f}")
+    print(f"  被动语态比例:       {profile.passive_voice_ratio*100:.0f}%")
+    print(f"  Flesch 阅读易度:    {profile.flesch_reading_ease:.1f}")
+    print(f"  Flesch-Kincaid 年级:{profile.flesch_kincaid_grade:.1f}")
+    print(f"  名物化比例:         {profile.nominalization_ratio*100:.0f}%")
+    print(f"  修饰词密度:         {profile.modifier_density:.2f}")
+    print(f"  实词密度:           {profile.lexical_density:.2f}")
+    print(f"  从属连词比 (/句):   {profile.subordination_ratio:.1f}")
+    print(f"  并列连词比 (/句):   {profile.coordination_ratio:.1f}")
+    print(f"  过渡词密度 (/100词):{profile.transition_density:.1f}")
+    print(f"  代词密度:           {profile.pronoun_density*100:.0f}%")
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@ def test_build_prompt_includes_words():
     assert "dog" in user_msg
     assert "cat" in user_msg
     assert "run" in user_msg
+    assert "at least 4 times" in user_msg
 
 
 def test_build_prompt_with_cefr(sample_classified_json):
@@ -32,13 +33,20 @@ def test_build_prompt_zh():
     sys_msg, user_msg = gen._build_prompt(["dog"], language="zh")
     assert "语言学习" in sys_msg
     assert "加粗" in user_msg
+    assert "至少 4 次" in user_msg
 
 
-def test_build_prompt_with_style():
+def test_build_prompt_with_style(sample_profile):
     gen = StoryGenerator(make_config())
-    sys_msg, _ = gen._build_prompt(["dog"], style_text="Reference passage here.")
-    assert "Reference passage here" in sys_msg
-    assert "Mimic" in sys_msg
+    sys_msg, _ = gen._build_prompt(
+        ["dog"], style_profile=sample_profile, style_name="TestStyle"
+    )
+    assert "Sentence structure" in sys_msg
+    assert "TestStyle" in sys_msg
+    assert "Nominalization" in sys_msg
+    assert "Modifier density" in sys_msg
+    assert "Lexical density" in sys_msg
+    assert "Subordination" in sys_msg
 
 
 def test_generate_story_empty_words():

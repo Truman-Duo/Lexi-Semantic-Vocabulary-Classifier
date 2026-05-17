@@ -222,7 +222,7 @@ Lexi 是一款离线多标签英文词汇意群分类工具。将单词归入三
 ### 环境要求
 
 - Python 3.8+
-- 安装依赖：`pip install lemminflect wordfreq nltk`
+- 安装依赖：`pip install lemminflect wordfreq nltk customtkinter`
 - （可选）AI 短文生成：`pip install openai`
 - （可选）Anki 导出：`pip install genanki`
 

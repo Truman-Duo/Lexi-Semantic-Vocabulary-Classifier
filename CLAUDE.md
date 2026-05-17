@@ -72,11 +72,13 @@ python build_full_categories.py   # 5-10分钟，输出 data/categories_full.jso
 - `lemminflect` — 词形还原
 - `wordfreq` — Zipf 词频统计 + CEFR 等级映射
 - `nltk` — WordNet 上义词路径、词性标注
+- `customtkinter` — 现代化 GUI 界面（深色/浅色主题）
 - `openai`（可选）— AI 短文生成（OpenAI 兼容接口）
 - `genanki`（可选）— Anki APKG 牌组导出
-- `tkinter`（内置）— GUI 界面
 
-## 新功能（v2.0）
+## 新功能（v2.4）
+
+- **CustomTkinter 现代化 UI**：圆角按钮、深色/浅色主题切换、跟随系统、hover 动效
 
 - **AI 短文生成**：接入 OpenAI 兼容 API，选择目标词汇自动生成英文短文，支持 4 种选词策略
 - **API 配置管理**：`cli.py config` 子命令 + GUI 设置对话框，配置文件存储在 `~/.lexi/config.json`

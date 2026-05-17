@@ -8,8 +8,11 @@ from typing import Dict, List, Optional, Callable
 
 from .models import WordInfo, ClassificationResult
 from .config import LexiConfig, load_config
+from .style_analyzer import StyleProfile
 
 LENGTH_TARGETS = {"short": 100, "medium": 250, "long": 500}
+REPETITIONS = {"short": 3, "medium": 4, "long": 5}
+WORDS_PER_TARGET = 13
 
 
 @dataclass
@@ -130,9 +133,12 @@ class StoryGenerator:
         word_infos: Optional[Dict[str, WordInfo]] = None,
         length: str = "medium",
         language: str = "en",
-        style_text: Optional[str] = None,
+        style_profile: Optional[StyleProfile] = None,
+        style_name: str = "",
     ) -> tuple:
-        target_count = LENGTH_TARGETS.get(length, 250)
+        reps = REPETITIONS.get(length, 3)
+        passage_length = max(120, len(words) * WORDS_PER_TARGET)
+        spacing = max(3, passage_length // (len(words) * reps)) if words else 8
         cefr_levels = set()
         word_lines = []
         for w in words:
@@ -150,18 +156,15 @@ class StoryGenerator:
                 "你是一位语言学习内容创作者。"
                 "你的任务是为英语学习者撰写短文，帮助他们在语境中掌握词汇。"
             )
-            if style_text:
-                system_msg += (
-                    "\n\n请模仿以下参考文本的写作风格来写这篇短文。"
-                    "注意其句式结构、用词选择、语气和节奏。\n\n"
-                    f"参考风格文本：\n{style_text}\n"
-                )
+            if style_profile and style_profile.avg_sentence_length > 0:
+                system_msg += _build_style_constraints_zh(style_profile, style_name)
             user_msg = (
                 f"请用以下英语词汇写一篇短文。短文必须是连贯的叙事，不是零散的句子。\n\n"
                 f"要求：\n"
-                f"- 必须使用列表中的每一个单词至少一次\n"
+                f"- 每个目标单词必须在短文中出现至少 {reps} 次（在上下文中自然重复）\n"
+                f"- 目标词密度：约每 {spacing} 个词出现 1 个目标词实例\n"
                 f"- 每个目标单词首次出现时，用 **加粗** 标记，例如 **abandon**\n"
-                f"- 短文约 {target_count} 词\n"
+                f"- 短文约 {passage_length} 词\n"
                 f"- 语言自然流畅，像为真实读者写的一样\n"
                 f"- 只输出短文本身，不要任何解释、说明或标题\n\n"
                 f"目标词汇（{len(words)} 个，CEFR 范围 {cefr_range}）：\n"
@@ -173,22 +176,18 @@ class StoryGenerator:
                 "Your task is to write short English passages that help "
                 "learners acquire vocabulary through context."
             )
-            if style_text:
-                system_msg += (
-                    "\n\nMimic the writing style of the following reference "
-                    "text. Pay attention to its sentence structure, word "
-                    "choice, tone, and rhythm.\n\n"
-                    f"Reference style text:\n{style_text}\n"
-                )
+            if style_profile and style_profile.avg_sentence_length > 0:
+                system_msg += _build_style_constraints_en(style_profile, style_name)
             user_msg = (
                 f"Write a short English passage that naturally incorporates "
                 f"ALL of the following vocabulary words. The passage should be "
                 f"a coherent narrative, not disconnected sentences or a list.\n\n"
                 f"Requirements:\n"
-                f"- Use EVERY word in the list below at least once\n"
+                f"- Use EVERY word at least {reps} times, repeating naturally in context\n"
+                f"- Target word density: roughly 1 target word per {spacing} words of text\n"
                 f"- The first time each target word appears, highlight it with "
                 f"**bold** like **this**\n"
-                f"- Write approximately {target_count} words total\n"
+                f"- Write approximately {passage_length} words total\n"
                 f"- The passage should read naturally — as if written for a real audience\n"
                 f"- Output ONLY the passage. No explanations, no commentary, no headings\n\n"
                 f"Target words ({len(words)} words, CEFR range {cefr_range}):\n"
@@ -203,7 +202,8 @@ class StoryGenerator:
         word_infos: Optional[Dict[str, WordInfo]] = None,
         length: str = "medium",
         language: str = "en",
-        style_text: Optional[str] = None,
+        style_profile: Optional[StyleProfile] = None,
+        style_name: str = "",
         progress_callback: Optional[Callable[[float], None]] = None,
         status_callback: Optional[Callable[[str], None]] = None,
     ) -> StoryResult:
@@ -218,7 +218,7 @@ class StoryGenerator:
         if progress_callback:
             progress_callback(0.1)
 
-        system_msg, user_msg = self._build_prompt(words, word_infos, length, language, style_text)
+        system_msg, user_msg = self._build_prompt(words, word_infos, length, language, style_profile, style_name)
 
         if status_callback:
             status_callback(f"Calling {self.config.model}...")
@@ -458,3 +458,159 @@ def _verify_word_usage(passage: str, words: List[str]) -> tuple:
             else:
                 missed.append(w)
     return used, missed
+
+
+def _build_style_constraints_en(profile: StyleProfile, style_name: str) -> str:
+    label = f' style "{style_name}"' if style_name else ""
+    parts = [
+        f"\n\nApply these specific writing constraints derived from"
+        f" quantitative analysis of the reference{label}:\n",
+    ]
+    if profile.avg_sentence_length > 0:
+        parts.append(
+            f"Sentence structure:\n"
+            f"- Target average sentence length: ~{profile.avg_sentence_length:.0f} words\n"
+            f"- Vary sentence length naturally (reference σ = {profile.sentence_length_std:.1f})\n"
+        )
+    if profile.avg_word_length > 0:
+        parts.append(
+            f"Vocabulary:\n"
+            f"- Average word length: ~{profile.avg_word_length:.1f} characters\n"
+        )
+    if profile.type_token_ratio > 0:
+        parts.append(
+            f"- Vocabulary diversity (TTR): ~{profile.type_token_ratio:.2f}\n"
+        )
+    if profile.cefr_distribution:
+        parts.append(f"- Target CEFR range: {profile.dominant_cefr()}\n")
+    if profile.passive_voice_ratio > 0:
+        parts.append(
+            f"Voice:\n"
+            f"- Passive voice: ~{profile.passive_voice_ratio*100:.0f}% of verb constructions\n"
+        )
+    if profile.flesch_kincaid_grade > 0:
+        parts.append(
+            f"Readability:\n"
+            f"- Flesch-Kincaid grade level: ~{profile.flesch_kincaid_grade:.1f}\n"
+            f"- Flesch Reading Ease: ~{profile.flesch_reading_ease:.1f}\n"
+        )
+    if any([
+        profile.nominalization_ratio, profile.modifier_density,
+        profile.lexical_density, profile.subordination_ratio,
+        profile.coordination_ratio, profile.transition_density,
+        profile.pronoun_density,
+    ]):
+        parts.append("Grammar and syntax:")
+        if profile.nominalization_ratio > 0:
+            parts.append(
+                f"- Nominalization: ~{profile.nominalization_ratio*100:.0f}% of words "
+                f"(use of -tion/-ment/-ity/-ness etc.)"
+            )
+        if profile.modifier_density > 0:
+            parts.append(
+                f"- Modifier density: ~{profile.modifier_density:.2f} "
+                f"(adjectives + adverbs per content word)"
+            )
+        if profile.lexical_density > 0:
+            parts.append(
+                f"- Lexical density: ~{profile.lexical_density:.2f} "
+                f"(content words ratio, i.e. information density)"
+            )
+        if profile.subordination_ratio > 0:
+            parts.append(
+                f"- Subordination: ~{profile.subordination_ratio:.1f} per sentence "
+                f"(use of although/because/while/if/when clauses)"
+            )
+        if profile.coordination_ratio > 0:
+            parts.append(
+                f"- Coordination: ~{profile.coordination_ratio:.1f} per sentence "
+                f"(use of and/but/or connections)"
+            )
+        if profile.transition_density > 0:
+            parts.append(
+                f"- Transition words: ~{profile.transition_density:.1f} per 100 words "
+                f"(however/therefore/moreover etc.)"
+            )
+        if profile.pronoun_density > 0:
+            parts.append(
+                f"- Pronoun density: ~{profile.pronoun_density*100:.0f}% pronouns "
+                f"(personal vs. impersonal style)"
+            )
+    return "\n".join(parts)
+
+
+def _build_style_constraints_zh(profile: StyleProfile, style_name: str) -> str:
+    label = f'风格 "{style_name}"' if style_name else ""
+    parts = [
+        f"\n\n请应用以下从参考{label}中量化分析得出的写作约束：\n",
+    ]
+    if profile.avg_sentence_length > 0:
+        parts.append(
+            f"句子结构：\n"
+            f"- 目标平均句长：约 {profile.avg_sentence_length:.0f} 词\n"
+            f"- 句长自然变化（参考 σ = {profile.sentence_length_std:.1f}）\n"
+        )
+    if profile.avg_word_length > 0:
+        parts.append(
+            f"词汇：\n"
+            f"- 平均词长：约 {profile.avg_word_length:.1f} 字符\n"
+        )
+    if profile.type_token_ratio > 0:
+        parts.append(
+            f"- 词汇多样性（型例比）：约 {profile.type_token_ratio:.2f}\n"
+        )
+    if profile.cefr_distribution:
+        parts.append(f"- 目标 CEFR 范围：{profile.dominant_cefr()}\n")
+    if profile.passive_voice_ratio > 0:
+        parts.append(
+            f"语态：\n"
+            f"- 被动语态：约 {profile.passive_voice_ratio*100:.0f}% 的动词结构\n"
+        )
+    if profile.flesch_kincaid_grade > 0:
+        parts.append(
+            f"可读性：\n"
+            f"- Flesch-Kincaid 年级水平：约 {profile.flesch_kincaid_grade:.1f}\n"
+        )
+    if any([
+        profile.nominalization_ratio, profile.modifier_density,
+        profile.lexical_density, profile.subordination_ratio,
+        profile.coordination_ratio, profile.transition_density,
+        profile.pronoun_density,
+    ]):
+        parts.append("语法与句法：")
+        if profile.nominalization_ratio > 0:
+            parts.append(
+                f"- 名物化比例：约 {profile.nominalization_ratio*100:.0f}% "
+                f"（-tion/-ment/-ity/-ness 等结尾词的使用密度）"
+            )
+        if profile.modifier_density > 0:
+            parts.append(
+                f"- 修饰词密度：约 {profile.modifier_density:.2f} "
+                f"（形容词+副词 与 实词的比值）"
+            )
+        if profile.lexical_density > 0:
+            parts.append(
+                f"- 实词密度：约 {profile.lexical_density:.2f} "
+                f"（信息密度指标）"
+            )
+        if profile.subordination_ratio > 0:
+            parts.append(
+                f"- 从属连词比例：约 {profile.subordination_ratio:.1f} 个/句 "
+                f"（although/because/while/if/when 等从句）"
+            )
+        if profile.coordination_ratio > 0:
+            parts.append(
+                f"- 并列连词比例：约 {profile.coordination_ratio:.1f} 个/句 "
+                f"（and/but/or 等连接）"
+            )
+        if profile.transition_density > 0:
+            parts.append(
+                f"- 过渡词密度：约 {profile.transition_density:.1f} 个/100词 "
+                f"（however/therefore/moreover 等）"
+            )
+        if profile.pronoun_density > 0:
+            parts.append(
+                f"- 代词密度：约 {profile.pronoun_density*100:.0f}% "
+                f"（人称化 vs. 非人称化风格）"
+            )
+    return "\n".join(parts)

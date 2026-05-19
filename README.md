@@ -16,8 +16,9 @@ Ideal for language learners, teachers, and anyone who wants to understand the se
 - **Contraction expansion** — *don't* → *do not*, *it's* → *it is*, etc.
 - **Multi-format output** — Markdown, JSON, CSV, interactive HTML, Anki (.apkg)
 - **AI story generation** — Generate short passages with target vocabulary using your own API key (OpenAI-compatible)
-- **Graphical interface** — Built with tkinter, no extra dependencies required
-- **100% offline** — Core classification is fully offline; AI story generation is optional
+- **Graphical interface** — Built with Flet (Flutter rendering), modern dark theme
+- **Style templates** — 15 quantitative style metrics for AI story generation
+- **Dual packaging** — Release build (22MB) + Debug build with full call tracing
 
 ---
 
@@ -52,7 +53,7 @@ Output
 ### Requirements
 
 - Python 3.8+
-- Dependencies: `pip install lemminflect wordfreq nltk`
+- Dependencies: `pip install lemminflect wordfreq nltk flet`
 - (Optional) AI story generation: `pip install openai`
 - (Optional) Anki export: `pip install genanki`
 
@@ -133,7 +134,7 @@ Usage: `python cli.py input.txt --overrides overrides.json`
 ```
 lexi/
 ├── cli.py                      # CLI entry point
-├── gui.py                      # GUI application (tkinter)
+├── gui.py                      # GUI application (Flet)
 ├── run_lexi.bat                # Windows launcher
 ├── build_full_categories.py    # Category dictionary builder
 ├── lexi/                       # Core package
@@ -186,7 +187,9 @@ Lexi 是一款离线多标签英文词汇意群分类工具。将单词归入三
 - **缩写展开** — *don't* → *do not*、*it's* → *it is* 等
 - **多格式输出** — Markdown、JSON、CSV、交互式 HTML、Anki 牌组
 - **AI 短文生成** — 使用自己的 API Key 让 AI 生成包含目标词汇的英文短文（OpenAI 兼容接口）
-- **图形界面** — 基于 tkinter，无需额外依赖
+- **图形界面** — 基于 Flet（Flutter 渲染），现代深色主题
+- **风格模板** — 15 项量化风格指标，AI 短文生成时精确控制写作风格
+- **双包打包** — 正常包（22MB）+ Debug 包（完整点击链路日志）
 - **完全离线** — 核心分类完全离线；AI 短文生成为可选功能
 
 ---
@@ -222,7 +225,7 @@ Lexi 是一款离线多标签英文词汇意群分类工具。将单词归入三
 ### 环境要求
 
 - Python 3.8+
-- 安装依赖：`pip install lemminflect wordfreq nltk customtkinter`
+- 安装依赖：`pip install lemminflect wordfreq nltk flet`
 - （可选）AI 短文生成：`pip install openai`
 - （可选）Anki 导出：`pip install genanki`
 

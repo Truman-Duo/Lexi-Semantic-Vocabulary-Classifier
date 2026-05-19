@@ -1,5 +1,43 @@
 # Version History
 
+## v3.1 — P1+P2+P3 学习系统 (2026-05-19)
+
+### P1 — 学习状态追踪 + 间隔复习
+- **LearnedDB** (`lexi/learned.py`) — 词状态持久化（`~/.lexi/learned.json`），Anki SM-2 间隔重复
+- **我的词库** — 统计面板 + 状态筛选（未学/学习中/已掌握）
+- **每日复习** — 到期词列表 + Again/Hard/Good/Easy 四按钮评级
+
+### P2 — AI 练习生成
+- **ExerciseGenerator** (`lexi/exercises.py`) — 完形填空/选择题/释义匹配 + 造句批改
+- **CLI** `exercise` 子命令 + **GUI** AI 练习页面 + 显示答案
+
+### P3 — 分阶段学习计划
+- **PlanGenerator** (`lexi/planner.py`) — CEFR 目标筛选 + 每日 N 词分配
+- **GUI** 学习计划页面 — 进度条 + 今日词表 + 完成标记
+- 113 个 pytest 测试
+
+---
+
+## v3.0 — Flet 现代化 GUI + 风格量化分析 + 密度感知生成 + 双包体系 (2026-05-19)
+
+### 新增功能
+
+- **Flet 现代化桌面 GUI** — 基于 Flutter 渲染，深色主题，侧栏导航，卡片式布局，圆角按钮
+- **风格量化分析** (`lexi/style_analyzer.py`) — StyleAnalyzer 提取 15 项量化指标（词长/TTR/CEFR/句长/方差/被动语态/名物化/修饰词密度/实词密度/从属连词/并列连词/过渡词/代词密度/Flesch易读度/Flesch-Kincaid年级）
+- **密度感知短文生成** — 短文长度随词数动态增长（`word_count × 13`），每词重复 2-5 次，密度约束
+- **GUI/CLI 架构解耦** (`lexi/gui_app.py`) — LexiApp 纯状态+操作层，gui.py 纯 Flet 视图层
+- **双包打包体系** — 正常包（`flet pack`，22MB）+ Debug 包（`pyinstaller`，145MB，console=True，完整点击链路日志）
+- **debug_launcher.py** — 点击钩子（按钮+侧栏+NavigationRail）+ `@trace` 函数追踪 + `sys.excepthook` + `threading.excepthook`
+
+### 工程改进
+
+- 88 个 pytest 测试全部通过，覆盖全部 13 个核心模块
+- Flet 0.85.x 8 项 API 断裂全部修复并记录到 CLAUDE.md
+- nltk_data 打包排除流程固化
+- 新增 `Lexi_debug.spec`、`debug_launcher.py`、`Lexi.spec`
+
+---
+
 ## v2.1 — 架构重构 + AI 风格模板 + 测试套件 (2026-05-17)
 
 ### 新增功能

@@ -105,7 +105,7 @@ def build_config_parser():
 
 
 def main():
-    if len(sys.argv) >= 2 and sys.argv[1] in ("story", "config", "style"):
+    if len(sys.argv) >= 2 and sys.argv[1] in ("story", "config", "style", "exercise", "plan"):
         subcommand = sys.argv[1]
         ctrl = LexiController()
         if subcommand == "story":
@@ -114,6 +114,10 @@ def main():
             _handle_config_command(ctrl, sys.argv[2:])
         elif subcommand == "style":
             _handle_style_command(ctrl, sys.argv[2:])
+        elif subcommand == "exercise":
+            _handle_exercise_command(ctrl, sys.argv[2:])
+        elif subcommand == "plan":
+            _handle_plan_command(ctrl, sys.argv[2:])
     else:
         _run_classify()
 
@@ -394,6 +398,100 @@ def _print_profile(profile):
     print(f"  并列连词比 (/句):   {profile.coordination_ratio:.1f}")
     print(f"  过渡词密度 (/100词):{profile.transition_density:.1f}")
     print(f"  代词密度:           {profile.pronoun_density*100:.0f}%")
+
+
+def _handle_exercise_command(ctrl, argv):
+    parser = argparse.ArgumentParser(description="Lexi: AI 练习生成")
+    parser.add_argument("input", help="已分类的 JSON 文件路径")
+    parser.add_argument("--type", choices=["cloze", "choice", "definition"], default="cloze",
+                        help="练习类型 (默认: cloze)")
+    parser.add_argument("--count", type=int, default=10, help="题目数量 (默认: 10)")
+    parser.add_argument("--words", help="手动指定词汇，逗号分隔")
+    parser.add_argument("--output", default="exercise.md", help="输出 Markdown 文件")
+    args = parser.parse_args(argv)
+
+    if not os.path.exists(args.input):
+        print(f"文件不存在: {args.input}", file=sys.stderr)
+        sys.exit(1)
+
+    from lexi.story import _load_word_infos_from_json
+    from lexi.exercises import ExerciseGenerator
+
+    word_infos = _load_word_infos_from_json(args.input)
+    if not word_infos:
+        print("未找到分类词汇，请先运行分类", file=sys.stderr)
+        sys.exit(1)
+
+    if args.words:
+        words = [w.strip() for w in args.words.split(",") if w.strip()]
+    else:
+        from lexi.story import StoryGenerator
+        gen = StoryGenerator(ctrl.config)
+        words = gen.select_words(word_infos, count=min(args.count, 20), strategy="balanced")
+
+    ex_gen = ExerciseGenerator(ctrl.config)
+    if args.type == "cloze":
+        result = ex_gen.generate_cloze(words, word_infos, count=args.count)
+    elif args.type == "choice":
+        result = ex_gen.generate_choice(words, word_infos, count=args.count)
+    else:
+        result = ex_gen.generate_definitions(words, word_infos)
+
+    lines = [f"# {result.prompt}\n"]
+    for i, item in enumerate(result.items, 1):
+        if result.type == "cloze":
+            lines.append(f"{i}. {item.sentence}")
+            lines.append(f"   答案: **{item.correct}**\n")
+        elif result.type == "choice":
+            lines.append(f"{i}. {item.sentence}")
+            for j, opt in enumerate(item.options):
+                mark = " ✓" if opt == item.correct else ""
+                lines.append(f"   {chr(65+j)}. {opt}{mark}")
+            lines.append("")
+        elif result.type == "definition":
+            lines.append(f"{i}. {item.definition}")
+            lines.append(f"   答案: **{item.word}**\n")
+
+    with open(args.output, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+    print(f"练习已生成: {args.output} ({len(result.items)} 题)")
+
+
+def _handle_plan_command(ctrl, argv):
+    parser = argparse.ArgumentParser(description="Lexi: 学习计划管理")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("show", help="查看今日计划")
+    create_p = sub.add_parser("create", help="创建学习计划")
+    create_p.add_argument("input", help="已分类的 JSON 文件路径")
+    create_p.add_argument("--cefr", default="B2", choices=["A1","A2","B1","B2","C1","C2"], help="目标等级")
+    create_p.add_argument("--daily", type=int, default=20, help="每日词数")
+    args = parser.parse_args(argv)
+
+    from lexi.planner import PlanGenerator
+
+    if args.cmd == "create":
+        if not os.path.exists(args.input):
+            print(f"文件不存在: {args.input}", file=sys.stderr)
+            sys.exit(1)
+        from lexi.story import _load_word_infos_from_json
+        from lexi.learned import LearnedDB
+        word_infos = _load_word_infos_from_json(args.input)
+        pg = PlanGenerator()
+        db = LearnedDB()
+        plan = pg.create_plan(word_infos, db, target_cefr=args.cefr, daily_count=args.daily)
+        p = pg.get_progress()
+        print(f"计划已创建: {p['total_days']} 天, {p['total_words']} 词, 目标 CEFR {args.cefr}")
+    else:
+        pg = PlanGenerator()
+        today = pg.get_today()
+        if not today:
+            print("暂无计划。创建: python cli.py plan create output.json --cefr B2")
+            return
+        print(f"今日 ({today.date}) 计划: {len(today.words)} 词")
+        for w in today.words[:20]:
+            print(f"  {w}")
+        if len(today.words) > 20:
+            print(f"  ... 等 {len(today.words)} 词")
 
 
 if __name__ == "__main__":

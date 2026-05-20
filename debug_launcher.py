@@ -160,10 +160,10 @@ print(f"[{_ts()}] ║ Installing click hooks...")
 
 _install_click_hooks()
 
-print(f"[{_ts()}] ║ Importing gui...")
+print(f"[{_ts()}] ║ Importing main...")
 import sys as _sys
-_sys._lexi_debug = True  # 通知 gui.py 输出控制台日志
-import gui
+_sys._lexi_debug = True
+import main
 
 print(f"[{_ts()}] ║ Launching GUI...")
 print(f"[{_ts()}] ╚══════════════════════════════════════════════════")
@@ -171,7 +171,7 @@ print()
 
 try:
     import flet as ft
-    ft.app(target=gui.main)
+    ft.app(target=main.main)
 except Exception as e:
     print(f"\n[{_ts()}] ╔══ GUI MAIN CRASH ═══════════════════════════════")
     traceback.print_exc()

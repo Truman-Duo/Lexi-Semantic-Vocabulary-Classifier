@@ -203,6 +203,58 @@ page.pop_dialog()                 # 关闭
 
 这是 API 配置和风格模板弹窗反复打不开的唯一根因。三次尝试（`page.open` → `page.dialog = dlg` → `page.show_dialog`）才找到正确的。
 
+### 9. Tab 组件：`ft.Tab` 无 `text` 无 `content` 参数
+
+```python
+# ❌ 错误 1
+ft.Tab(text="导入分类", content=build_page())
+# ❌ 错误 2
+ft.Tab(label="导入分类", content=build_page())  # label 存在但 content 不存在
+# ✅ 正确：手写按钮行 + Stack 手动切换
+tab_buttons = [ft.TextButton("导入分类", on_click=lambda _, i=0: switch(i)), ...]
+tab_stack = ft.Stack(controls=[page0, page1, ...])  # 手动控制 visible
+```
+
+根因：`ft.Tab` 只有 `label` 和 `icon`，没有 `content` 参数。使用 `ft.TextButton` 行 + `ft.Stack` + 手动 `visible` 切换替代。
+
+### 10. `ft.alignment.top_center` 不存在
+
+```python
+# ❌ 错误
+ft.alignment.top_center
+# ✅ 正确
+ft.alignment.Alignment(0, -1)  # x=0(center), y=-1(top)
+```
+
+### 11. `coroutine scroll_to was never awaited`
+
+```python
+# ❌ 错误：scroll_to 是 async，但不能在同步 on_click 中 await
+main_col.scroll_to(offset=-1, duration=300)
+# ✅ 正确：删掉 —— 页面切换后不需要自动滚动
+```
+
+### 12. Python 闭包陷阱：循环变量捕获
+
+```python
+# ❌ 错误
+for d in data:
+    btn.on_click = lambda _: foo(d)  # d 永远是最后一个值
+
+# ✅ 正确：工厂函数 + 默认参数捕获
+for d in data:
+    def _mk(dd):
+        return lambda _: foo(dd)
+    btn.on_click = _mk(d)
+```
+
+### 13. `gui.py` 与 `gui/` 包名冲突
+
+```python
+# ❌ 错误：gui.py + gui/ 目录同时存在
+# Python 解析 import gui 时先找到 gui.py，导致 gui/ 下模块不可访问
+# ✅ 正确：gui.py → main.py，debug_launcher import main
+
 ### 4. 文件选择：Flet FilePicker 打包后不可用，回退 tkinter
 
 ```python
@@ -295,6 +347,10 @@ assert 'on_change' in sig.parameters
 print('ALL 8 API CHECKS PASSED')
 "
 ```
+
+**补充 Flet 0.85 API 差异：**
+- `ft.Tab(text=)` → 不存在；`label` 存在但 Tab 也无 `content` 参数，Tabs 需手写按钮+Stack 实现
+- `ft.Tabs(on_change=)` 存在，同 NavigationRail
 
 ---
 

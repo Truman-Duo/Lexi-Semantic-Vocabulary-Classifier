@@ -9,13 +9,9 @@ import flet as ft
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from lexi.gui_app import LexiApp
 from gui.theme import C, FONT_FAMILY, MONO_FAMILY
-from gui.widgets import mk_dropdown
-from gui.pages.classify_page import build_classify_page
-from gui.pages.story_page import build_story_page
-from gui.pages.exercise_page import build_exercise_page
-from gui.pages.lexicon_page import build_lexicon_page
-from gui.pages.review_page import build_review_page
-from gui.pages.plan_page import build_plan_page
+from gui.pages.profile_page import build_profile_page
+from gui.pages.vocabulary_page import build_vocabulary_page
+from gui.pages.reading_page import build_reading_page
 
 
 def main(page: ft.Page):
@@ -40,15 +36,12 @@ def main(page: ft.Page):
 
     app = LexiApp()
 
-    main_page = build_classify_page(app, page)
-    story_page = build_story_page(app, page)
-    exercise_page = build_exercise_page(app, page)
-    lexicon_page = build_lexicon_page(app, page)
-    review_page = build_review_page(app, page)
-    plan_page = build_plan_page(app, page)
+    profile_page = build_profile_page(app, page)
+    vocab_page = build_vocabulary_page(app, page)
+    reading_page = build_reading_page(app, page)
 
-    PAGES = [main_page, story_page, exercise_page, lexicon_page, review_page, plan_page]
-    PAGE_TITLES = ["词汇分类", "AI 短文生成", "AI 练习", "我的词库", "每日复习", "学习计划"]
+    PAGES = [profile_page, vocab_page, reading_page]
+    PAGE_TITLES = ["个人", "词库", "阅读"]
     for i, p in enumerate(PAGES):
         p.visible = (i == 0)
 
@@ -112,23 +105,32 @@ def main(page: ft.Page):
 
     sidebar = ft.NavigationRail(
         selected_index=0, label_type=ft.NavigationRailLabelType.ALL,
-        min_width=80, min_extended_width=180,
+        min_width=80, min_extended_width=140,
         bgcolor=C["bg_panel"], indicator_color=C["accent"],
         destinations=[
-            ft.NavigationRailDestination(icon=ft.Icons.CATEGORY_OUTLINED, selected_icon=ft.Icons.CATEGORY, label="词汇分类"),
-            ft.NavigationRailDestination(icon=ft.Icons.EDIT_NOTE_OUTLINED, selected_icon=ft.Icons.EDIT_NOTE, label="AI 短文生成"),
-            ft.NavigationRailDestination(icon=ft.Icons.QUIZ_OUTLINED, selected_icon=ft.Icons.QUIZ, label="AI 练习"),
-            ft.NavigationRailDestination(icon=ft.Icons.MENU_BOOK_OUTLINED, selected_icon=ft.Icons.MENU_BOOK, label="我的词库"),
-            ft.NavigationRailDestination(icon=ft.Icons.CALENDAR_TODAY_OUTLINED, selected_icon=ft.Icons.CALENDAR_TODAY, label="每日复习"),
-            ft.NavigationRailDestination(icon=ft.Icons.TRENDING_UP_OUTLINED, selected_icon=ft.Icons.TRENDING_UP, label="学习计划"),
+            ft.NavigationRailDestination(icon=ft.Icons.PERSON_OUTLINED, selected_icon=ft.Icons.PERSON, label="个人"),
+            ft.NavigationRailDestination(icon=ft.Icons.MENU_BOOK_OUTLINED, selected_icon=ft.Icons.MENU_BOOK, label="词库"),
+            ft.NavigationRailDestination(icon=ft.Icons.AUTO_STORIES_OUTLINED, selected_icon=ft.Icons.AUTO_STORIES, label="阅读"),
+            ft.NavigationRailDestination(icon=ft.Icons.HEADPHONES_OUTLINED, selected_icon=ft.Icons.HEADPHONES, label="听力"),
+            ft.NavigationRailDestination(icon=ft.Icons.EDIT_OUTLINED, selected_icon=ft.Icons.EDIT, label="写作"),
+            ft.NavigationRailDestination(icon=ft.Icons.CHAT_OUTLINED, selected_icon=ft.Icons.CHAT, label="对话"),
             ft.NavigationRailDestination(icon=ft.Icons.SETTINGS_OUTLINED, selected_icon=ft.Icons.SETTINGS, label="设置"),
         ])
 
+    FUTURE_LABELS = {3: "听力", 4: "写作", 5: "对话"}
+
     def _on_nav(e):
         idx = e.control.selected_index
-        _dbg(f"🖱 NAV: {idx} → {PAGE_TITLES[idx] if idx < 6 else '设置'}")
+        _dbg(f"🖱 NAV: {idx} → {PAGE_TITLES[idx] if idx < 3 else FUTURE_LABELS.get(idx, '设置')}")
         if idx == 6:
             _show_settings()
+            return
+        if idx >= 3:
+            page.show_dialog(ft.AlertDialog(
+                title=ft.Text(FUTURE_LABELS.get(idx, "功能"), color=C["text_primary"]),
+                content=ft.Text("即将上线", size=13, color=C["text_muted"]),
+                actions=[ft.TextButton("好的", on_click=lambda _: _close_dlg())],
+                bgcolor=C["bg_card"]))
             return
         for i, p in enumerate(PAGES):
             p.visible = (i == idx)

@@ -1,5 +1,19 @@
 # Version History
 
+## v3.3 — 侧栏重构：按能力领域分层 + 页面容器 (2026-05-20)
+
+### 侧栏按能力领域 7 项
+- 个人（学习天数+词库统计） / 词库（Tabs: 导入分类|词库查看|背诵器|AI练习） / 阅读（短文生成|阅读器占位）
+- 听力/写作/对话 → "即将上线"占位
+- 设置 → API 配置弹窗
+
+### 架构改进
+- review_page + plan_page → 合并为 reciter_tab（SM-2 复习 + 计划进度）
+- vocabulary_page / reading_page 容器化，手动 TextButton-based Tabs
+- Flet 0.85.x 13 条 API 断裂全部记录到 CLAUDE.md
+
+---
+
 ## v3.1 — P1+P2+P3 学习系统 (2026-05-19)
 
 ### P1 — 学习状态追踪 + 间隔复习

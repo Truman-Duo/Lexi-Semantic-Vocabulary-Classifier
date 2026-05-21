@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['gui.py'],
+    ['main.py'],
     pathex=[],
     binaries=[],
     datas=[('data/categories_full.json', 'data'), ('data/stopwords.txt', 'data')],
@@ -32,7 +32,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    version='C:\\Users\\Duo\\AppData\\Local\\Temp\\5cca6f26-c26d-405f-bad0-e6c435f8fbbf',
+    version='C:\\Users\\Duo\\AppData\\Local\\Temp\\c0c9fac6-146b-4036-999b-505fdc65d156',
 )
 coll = COLLECT(
     exe,

@@ -171,7 +171,7 @@ print()
 
 try:
     import flet as ft
-    ft.app(target=main.main)
+    ft.run(main.main)
 except Exception as e:
     print(f"\n[{_ts()}] ╔══ GUI MAIN CRASH ═══════════════════════════════")
     traceback.print_exc()

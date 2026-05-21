@@ -254,6 +254,38 @@ for d in data:
 # ❌ 错误：gui.py + gui/ 目录同时存在
 # Python 解析 import gui 时先找到 gui.py，导致 gui/ 下模块不可访问
 # ✅ 正确：gui.py → main.py，debug_launcher import main
+```
+
+### 14. `.update()` 在控件挂载前调用 → `Control must be added to the page first`
+
+```python
+# ❌ 错误：页面构建阶段调用 control.update()
+book_info.update()  # 控件尚未添加到 page 树
+# ✅ 正确：只设置 value，由后续 page.update() 统一刷新
+book_info.value = "词本: 500 词"
+```
+
+### 15. `nonlocal` 绑定失败 → `SyntaxError: no binding for nonlocal 'session_stats' found`
+
+```python
+# ❌ 错误：nonlocal 引用的变量在重写时被遗漏定义
+nonlocal session_stats  # session_stats = {} 这行丢了
+# ✅ 正确：确保 nonlocal 引用的变量在 enclosing scope 中有定义
+session_stats = {}
+```
+
+### 16. 热路径重复写盘
+
+- `log_review()` 和 `mark_reviewed()` 各调一次 `save()` → 每次答题双写 `learned.json`
+- `stats.record_action()` 每次答题写 `stats.json`
+- 修复：`log_review()` 移除 `save()`，由 `ReciterEngine.log_and_update()` 统一保存
+- `stats.py` 加 60 秒去抖，累计 ≥60s 才写一次
+
+### 18. 页面文件间 import 遗漏 → `NameError: name 'mk_dropdown' is not defined`
+
+每个 `gui/pages/` 下的文件是独立模块，从 `widgets.py` 引用工厂函数时必须显式 import。新增代码时容易只复制了函数用法而忘记 import。
+
+检查方法：`grep -r "from ..widgets import" gui/pages/` 确认所有使用的工厂函数都在 import 列表中。
 
 ### 4. 文件选择：Flet FilePicker 打包后不可用，回退 tkinter
 
@@ -299,13 +331,15 @@ args.exc_tb
 args.exc_traceback
 ```
 
-### 8. Flet 入口：`ft.app()` → `ft.run()`
+### 8. Flet 入口：`ft.app()` → `ft.run(main)`
 
 ```python
 # ❌ DeprecationWarning (0.80.0+)
 ft.app(target=main)
-# ✅ 正确
-ft.run(target=main)  # 暂保持 app() 也可用，但会有警告
+# ❌ 错误：ft.run 无 target 关键字
+ft.run(target=main)
+# ✅ 正确：main 是位置参数，不是关键字
+ft.run(main)
 ```
 
 ---

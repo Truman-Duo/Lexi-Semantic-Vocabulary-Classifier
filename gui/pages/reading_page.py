@@ -6,14 +6,14 @@ from ..widgets import C
 
 def build_reading_page(app, page: ft.Page) -> ft.Column:
     from ..pages.story_page import build_story_page
+    from ..pages.reader_tab import build_reader_tab
     story_col = build_story_page(app, page)
     story_col.controls = story_col.controls[1:]
 
     tab_labels = ["短文生成", "阅读器"]
     tab_contents = [
         ft.Column(controls=story_col.controls, spacing=0, expand=True, scroll=ft.ScrollMode.AUTO),
-        ft.Container(content=ft.Text("即将上线", size=14, color=C["text_muted"]),
-                     padding=ft.Padding(0, 40, 0, 0), alignment=ft.alignment.Alignment(0, -1)),
+        ft.Container(content=build_reader_tab(app, page), padding=ft.Padding(0, 8, 0, 0)),
     ]
     selected = [0]
     tab_buttons = []

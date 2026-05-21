@@ -45,6 +45,13 @@ def main(page: ft.Page):
     for i, p in enumerate(PAGES):
         p.visible = (i == 0)
 
+    def _nav_to(idx):
+        for i, p in enumerate(PAGES):
+            p.visible = (i == idx)
+        page.update()
+
+    app.on_nav = _nav_to
+
     def _show_api_dialog():
         cfg = app.ctrl.config
         api_url = ft.TextField(value=cfg.api_base_url, label="API Base URL",
@@ -143,4 +150,4 @@ def main(page: ft.Page):
 
 
 if __name__ == "__main__":
-    ft.app(target=main)
+    ft.run(main)

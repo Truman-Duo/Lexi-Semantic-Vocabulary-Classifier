@@ -7,6 +7,7 @@ import threading
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from lexi.controller import LexiController, OutputOptions
 from lexi.learned import LearnedDB
+from lexi.stats import StatsTracker
 
 
 class LexiApp:
@@ -17,6 +18,8 @@ class LexiApp:
     def __init__(self):
         self.ctrl = LexiController()
         self.learned_db = LearnedDB()
+        self.stats = StatsTracker()
+        self.stats.start_session()
         self.running = False
         self.output_dir = os.path.dirname(os.path.abspath(__file__)) or "."
         self.last_output_json = None
@@ -53,6 +56,7 @@ class LexiApp:
         self.on_classify_done = lambda json_path: None
         self.on_classify_error = lambda msg: None
         self.on_story_error = lambda msg: None
+        self.on_nav = lambda idx: None  # 导航回调，由 main.py 设置
 
     # ── Actions ──────────────────────────────────────────────
 
@@ -159,6 +163,10 @@ class LexiApp:
                     for entry in entries:
                         words.add(entry["word"])
             self.learned_db.import_words(list(words))
+            import threading
+            threading.Thread(
+                target=lambda: self.learned_db.generate_meanings(self.ctrl.config),
+                daemon=True).start()
         except Exception:
             pass
 

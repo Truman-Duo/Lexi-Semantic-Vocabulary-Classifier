@@ -5,16 +5,21 @@ from ..widgets import C, mk_dropdown
 
 
 def build_vocabulary_page(app, page: ft.Page) -> ft.Column:
-    tab_labels = ["导入分类", "词库查看", "背诵器", "AI 练习"]
+    tab_labels = ["导入分类", "背诵器"]
     tab_contents = [
         _build_classify(app, page),
-        _build_lexicon(app, page),
         _build_reciter(app, page),
-        _build_exercise(app, page),
     ]
     selected = [0]
     tab_buttons = []
     tab_stack = ft.Stack()
+
+    def _export_csv(_=None):
+        import tkinter.filedialog
+        p = tkinter.filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")])
+        if p:
+            app.learned_db.export_csv(p)
+            app.on_log(f"词库已导出: {p}", "ok")
 
     def _switch(idx):
         selected[0] = idx
@@ -40,7 +45,10 @@ def build_vocabulary_page(app, page: ft.Page) -> ft.Column:
 
     return ft.Column(spacing=0, expand=True, controls=[
         ft.Container(content=ft.Row([ft.Text("词库", size=15, weight=ft.FontWeight.W_600, color=C["text_primary"]),
-                                     ft.Text("v3.3", size=11, color=C["text_dim"])],
+                                     ft.Row([ft.Text("v3.3", size=11, color=C["text_dim"]),
+                                             ft.OutlinedButton(content="导出CSV", on_click=_export_csv,
+                                                style=ft.ButtonStyle(color=C["text_muted"], side=ft.BorderSide(1, C["border"]),
+                                                                     shape=ft.RoundedRectangleBorder(radius=4), text_style=ft.TextStyle(size=11)))], spacing=8)],
                                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                      padding=ft.Padding(24, 16, 24, 16), bgcolor=C["bg_panel"],
                      border=ft.Border.only(bottom=ft.BorderSide(1, C["border"]))),
@@ -52,13 +60,6 @@ def build_vocabulary_page(app, page: ft.Page) -> ft.Column:
 def _build_classify(app, page) -> ft.Column:
     from ..pages.classify_page import build_classify_page
     col = build_classify_page(app, page)
-    col.controls = col.controls[1:]
-    return ft.Column(controls=col.controls, spacing=0, expand=True, scroll=ft.ScrollMode.AUTO)
-
-
-def _build_lexicon(app, page) -> ft.Column:
-    from ..pages.lexicon_page import build_lexicon_page
-    col = build_lexicon_page(app, page)
     col.controls = col.controls[1:]
     return ft.Column(controls=col.controls, spacing=0, expand=True, scroll=ft.ScrollMode.AUTO)
 
